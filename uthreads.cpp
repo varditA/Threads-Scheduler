@@ -3,6 +3,11 @@
 #include <iostream>
 #include "uthreads.h"
 
+/* map with current threads
+ * set with the feed indexes
+ * if the set is empty:
+ *  check if the max in the map is smaller than MAX_THREAD_NUM */
+
 typedef struct
 {
     int id;
@@ -13,6 +18,7 @@ typedef struct
 int quantumUsecs;                   /* the length of a quantum in micro-seconds */
 int totalNumQuantum;                /* the total number of quantum */
 int threadsNum;                     /* how many threads are exists now */
+int maxThreadIndex;
 
 thread currentRunning;              /* the thread that running right now */
 std::list<thread> readythreads;     /* a list of READY threads */
@@ -129,7 +135,10 @@ int uthread_get_tid();
  * should be increased by 1.
  * Return value: The total number of quantums.
 */
-int uthread_get_total_quantums();
+int uthread_get_total_quantums()
+{
+    return totalNumQuantum;
+}
 
 
 /*
@@ -141,4 +150,7 @@ int uthread_get_total_quantums();
  * thread with ID tid exists it is considered as an error.
  * Return value: On success, return the number of quantums of the thread with ID tid. On failure, return -1.
 */
-int uthread_get_quantums(int tid);
+int uthread_get_quantums(int tid)
+{
+
+}
