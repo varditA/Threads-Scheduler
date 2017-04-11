@@ -11,17 +11,21 @@
 typedef struct
 {
     int id;
-    int quantums_num;
+    int quantumsNum;
     char* state;
 } thread;
 
 int quantumUsecs;                   /* the length of a quantum in micro-seconds */
 int totalNumQuantum;                /* the total number of quantum */
-int threadsNum;                     /* how many threads are exists now */
+int threadsNum;                     /* how many threads exist now */
 int maxThreadIndex;
+int timer;                          /* how many ms are left for this thread to run */
 
 thread currentRunning;              /* the thread that running right now */
-std::list<thread> readythreads;     /* a list of READY threads */
+std::list<thread> readyThreads;     /* a list of READY threads */
+
+int mainLoop();                     /* the timer loop */
+int switchThreads(thread newThread);/* switches between threads */
 
 
 /*
@@ -151,6 +155,28 @@ int uthread_get_total_quantums()
  * Return value: On success, return the number of quantums of the thread with ID tid. On failure, return -1.
 */
 int uthread_get_quantums(int tid)
+{
+
+}
+
+/* *********************************** Private Functions ************************************* */
+
+int mainLoop()
+{
+    while (true)
+    {
+        while (timer > 0)
+        {
+            timer -= 1;
+        }
+        if (readyThreads.size() > 0)
+        {
+            switchThreads(readyThreads.pop_front());
+        }
+    }
+}
+
+int switchThreads(thread newThread)
 {
 
 }
