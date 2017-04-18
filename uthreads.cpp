@@ -9,7 +9,7 @@
 #include <map>
 #include "uthreads.h"
 
-/***************************** start of black box code ****************************/
+/* **************************** start of black box code *************************** */
 
 #ifdef __x86_64__
 /* code for 64 bit Intel arch */
@@ -51,7 +51,7 @@ address_t translate_address(address_t addr)
 }
 #endif
 
-/***************************** end of black box code ****************************/
+/* **************************** end of black box code *************************** */
 
 using namespace std;
 
@@ -275,6 +275,8 @@ int mainLoop()
 
 int switchThreads(thread *newThread)
 {
+    totalNumQuantum += 1; //TODO: this will add a quantom even if the process terminated before
+    // TODO time. is that what needs to be done?
     if (currentRunning != NULL)
     {
         // TODO need to check if it needs to go again to ready or paused or terminated thread?
