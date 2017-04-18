@@ -80,15 +80,6 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/main.cpp">
-			<Option target="ex2_new"/>
-		</Unit>
-		<Unit filename="/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/uthreads.cpp">
-			<Option target="ex2_new"/>
-		</Unit>
-		<Unit filename="/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/uthreads.h">
-			<Option target="ex2_new"/>
-		</Unit>
 		<Unit filename="/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>

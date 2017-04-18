@@ -1,7 +1,58 @@
 #include <list>
 #include <cstdio>
 #include <iostream>
+#include <setjmp.h>
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include "uthreads.h"
+
+/***************************** start of black box code ****************************/
+
+#ifdef __x86_64__
+/* code for 64 bit Intel arch */
+
+typedef unsigned long address_t;
+
+#define JB_SP 6
+#define JB_PC 7
+
+/* A translation is required when using an address of a variable.
+   Use this as a black box in your code. */
+address_t translate_address(address_t addr)
+{
+    address_t ret;
+    asm volatile("xor    %%fs:0x30,%0\n"
+            "rol    $0x11,%0\n"
+    : "=g" (ret)
+    : "0" (addr));
+    return ret;
+}
+
+#else
+/* code for 32 bit Intel arch */
+
+typedef unsigned int address_t;
+#define JB_SP 4
+#define JB_PC 5
+
+/* A translation is required when using an address of a variable.
+   Use this as a black box in your code. */
+address_t translate_address(address_t addr)
+{
+    address_t ret;
+    asm volatile("xor    %%gs:0x18,%0\n"
+		"rol    $0x9,%0\n"
+                 : "=g" (ret)
+                 : "0" (addr));
+    return ret;
+}
+#endif
+
+/***************************** end of black box code ****************************/
+
+using namespace std;
 
 /* map with current threads
  * set with the feed indexes
@@ -12,20 +63,22 @@ typedef struct
 {
     int id;
     int quantumsNum;
-    char* state;
+    char *state; //TODO what is this for?
+    char stack[STACK_SIZE];
+    sigjmp_buf env;
 } thread;
 
 int quantumUsecs;                   /* the length of a quantum in micro-seconds */
 int totalNumQuantum;                /* the total number of quantum */
 int threadsNum;                     /* how many threads exist now */
 int maxThreadIndex;
-int timer;                          /* how many ms are left for this thread to run */
+int timer;                      /* how many ms are left for this thread to run */
 
-thread currentRunning;              /* the thread that running right now */
-std::list<thread> readyThreads;     /* a list of READY threads */
+thread *currentRunning;              /* the thread that running right now */
+list<thread *> readyThreads;    /* a list of pointers to READY threads */
 
 int mainLoop();                     /* the timer loop */
-int switchThreads(thread newThread);/* switches between threads */
+int switchThreads(thread& newThread);/* switches between threads */
 
 
 /*
@@ -46,6 +99,8 @@ int uthread_init(int quantum_usecs)
     }
     quantumUsecs = quantum_usecs;
     totalNumQuantum = 0;
+    timer = 0;
+    readyThreads = *(new list<thread *>);
     return 0;
 }
 
@@ -67,7 +122,16 @@ int uthread_spawn(void (*f)(void))
         return -1;
     }
 
-    //TODO implementation
+    address_t sp, pc;
+
+    thread *newThread = new thread;
+
+    sp = (address_t)newThread->stack + STACK_SIZE - sizeof(address_t);
+    pc = (address_t)f;
+    sigsetjmp(newThread->env, 1);
+    (newThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
+    (newThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
+    sigemptyset(&(newThread->env)->__saved_mask); //todo: do we need to save the mask?
 
     return 0;
 }
@@ -165,18 +229,29 @@ int mainLoop()
 {
     while (true)
     {
-        while (timer > 0)
+        if (timer > 0)
         {
             timer -= 1;
         }
-        if (readyThreads.size() > 0)
+        else if (readyThreads.size() > 0)
         {
-            switchThreads(readyThreads.pop_front());
+            thread *newThread = readyThreads.front();
+            readyThreads.pop_front();
+            switchThreads(*newThread);
         }
     }
 }
 
-int switchThreads(thread newThread)
+int switchThreads(thread& newThread)
 {
-
+    if (currentRunning != NULL)
+    {
+        // TODO pause thread
+        // TODO check if it needs to go again to ready or paused or terminated thread
+        // TODO save the context of the thread (using sigsetjmp)
+    }
+    // TODO change the state of newThread to running (using siglongjmp)
+    currentRunning = &newThread;
+    // set the running time for the new thread
+    timer = quantumUsecs;
 }

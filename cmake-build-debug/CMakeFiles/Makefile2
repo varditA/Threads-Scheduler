@@ -66,7 +66,7 @@ CMAKE_BINARY_DIR = /Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug
 CMakeFiles/ex2_new.dir/all:
 	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/depend
 	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug/CMakeFiles --progress-num=1,2,3 "Built target ex2_new"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug/CMakeFiles --progress-num= "Built target ex2_new"
 .PHONY : CMakeFiles/ex2_new.dir/all
 
 # Include target in all.
@@ -76,7 +76,7 @@ all: CMakeFiles/ex2_new.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/ex2_new.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug/CMakeFiles 0
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/ex2_new.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/AdiYehezkeli/Documents/HUJI/OS/ex2/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/ex2_new.dir/rule

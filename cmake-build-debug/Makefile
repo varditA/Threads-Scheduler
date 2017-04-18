@@ -123,60 +123,6 @@ ex2_new/fast:
 	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/build
 .PHONY : ex2_new/fast
 
-main.o: main.cpp.o
-
-.PHONY : main.o
-
-# target to build an object file
-main.cpp.o:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/main.cpp.o
-.PHONY : main.cpp.o
-
-main.i: main.cpp.i
-
-.PHONY : main.i
-
-# target to preprocess a source file
-main.cpp.i:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/main.cpp.i
-.PHONY : main.cpp.i
-
-main.s: main.cpp.s
-
-.PHONY : main.s
-
-# target to generate assembly for a file
-main.cpp.s:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/main.cpp.s
-.PHONY : main.cpp.s
-
-uthreads.o: uthreads.cpp.o
-
-.PHONY : uthreads.o
-
-# target to build an object file
-uthreads.cpp.o:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/uthreads.cpp.o
-.PHONY : uthreads.cpp.o
-
-uthreads.i: uthreads.cpp.i
-
-.PHONY : uthreads.i
-
-# target to preprocess a source file
-uthreads.cpp.i:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/uthreads.cpp.i
-.PHONY : uthreads.cpp.i
-
-uthreads.s: uthreads.cpp.s
-
-.PHONY : uthreads.s
-
-# target to generate assembly for a file
-uthreads.cpp.s:
-	$(MAKE) -f CMakeFiles/ex2_new.dir/build.make CMakeFiles/ex2_new.dir/uthreads.cpp.s
-.PHONY : uthreads.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -186,12 +132,6 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... ex2_new"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
-	@echo "... uthreads.o"
-	@echo "... uthreads.i"
-	@echo "... uthreads.s"
 .PHONY : help
 
 
