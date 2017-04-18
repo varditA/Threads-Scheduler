@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <map>
 #include "uthreads.h"
 
 /***************************** start of black box code ****************************/
@@ -72,13 +73,16 @@ int quantumUsecs;                   /* the length of a quantum in micro-seconds 
 int totalNumQuantum;                /* the total number of quantum */
 int threadsNum;                     /* how many threads exist now */
 int maxThreadIndex;
-int timer;                      /* how many ms are left for this thread to run */
+int timer;                          /* how many ms are left for this thread to run */
 
-thread *currentRunning;              /* the thread that running right now */
-list<thread *> readyThreads;    /* a list of pointers to READY threads */
+int currentRunning;                 /* the thread that running right now */
+list<thread *> readyThreads;        /* a list of pointers to READY threads */
+map<int, thread *> allThreads;
 
+int getThreadNum();                 /* find the next available number for a new thread */
 int mainLoop();                     /* the timer loop */
 int switchThreads(thread& newThread);/* switches between threads */
+
 
 
 /*
@@ -101,6 +105,7 @@ int uthread_init(int quantum_usecs)
     totalNumQuantum = 0;
     timer = 0;
     readyThreads = *(new list<thread *>);
+    // todo create the main thread
     return 0;
 }
 
@@ -116,13 +121,15 @@ int uthread_init(int quantum_usecs)
 */
 int uthread_spawn(void (*f)(void))
 {
-    if (threadsNum == MAX_THREAD_NUM)
+    // Creating a new thread
+    address_t sp, pc;
+
+    int threadNum = getThreadNum();
+    if (threadNum == -1)
     {
         fprintf(stderr,"thread library error: Can't create more threads.\n");
         return -1;
     }
-
-    address_t sp, pc;
 
     thread *newThread = new thread;
 
@@ -132,6 +139,10 @@ int uthread_spawn(void (*f)(void))
     (newThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
     (newThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
     sigemptyset(&(newThread->env)->__saved_mask); //todo: do we need to save the mask?
+
+    // Add the new thread into the thread list and ready list
+    allThreads.insert(pair<int, thread *>(threadNum, newThread));
+    readyThreads.push_back(newThread);
 
     return 0;
 }
@@ -148,7 +159,27 @@ int uthread_spawn(void (*f)(void))
  * terminated and -1 otherwise. If a thread terminates itself or the main
  * thread is terminated, the function does not return.
 */
-int uthread_terminate(int tid);
+int uthread_terminate(int tid)
+{
+    if (currentRunning == tid)
+    {
+        switchThreads(readyThreads.front());
+        readyThreads.pop_front();
+    }
+
+    for (thread* i : readyThreads) // TODO this takes O(n) time - is there a better way?
+    {
+        if (i->id == tid)
+        {
+            readyThreads.remove(i);
+        }
+    }
+
+    thread *threadToDelete = allThreads.at(tid);
+    allThreads.erase(tid);
+    delete(*threadToDelete);
+    return 0;
+}
 
 
 /*
@@ -242,16 +273,34 @@ int mainLoop()
     }
 }
 
-int switchThreads(thread& newThread)
+int switchThreads(thread *newThread)
 {
     if (currentRunning != NULL)
     {
-        // TODO pause thread
-        // TODO check if it needs to go again to ready or paused or terminated thread
-        // TODO save the context of the thread (using sigsetjmp)
+        // TODO need to check if it needs to go again to ready or paused or terminated thread?
+        // TODO save the context of the thread (using sigsetjmp) (not trivial)
     }
-    // TODO change the state of newThread to running (using siglongjmp)
-    currentRunning = &newThread;
+    currentRunning = newThread->id;
+
     // set the running time for the new thread
-    timer = quantumUsecs;
+    timer = quantumUsecs; //TODO: need to change to the operating system's timer
+
+    siglongjmp(newThread->env, 1); //jump to execute the new thread
+}
+
+/*
+ * Finds the lowest vacant thread num.
+ * if there is no such number, returns -1
+ */
+int getThreadNum()
+{
+    for (int i = 1; i <= MAX_THREAD_NUM; i++) //TODO: not very efficient, is there a better way?
+    {
+        if (allThreads.find(i) == NULL)
+        {
+            return i;
+        }
+    }
+    // in case that there is no vacant thread num
+    return -1;
 }
