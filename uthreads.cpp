@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <map>
+#include <stdlib.h>
 #include "uthreads.h"
 
 /* **************************** start of black box code *************************** */
@@ -64,6 +65,7 @@ typedef struct
 {
     int id;
     int quantumsNum;
+    bool blocked;
     char *state; //TODO what is this for?
     char stack[STACK_SIZE];
     sigjmp_buf env;
@@ -80,10 +82,113 @@ list<thread *> readyThreads;        /* a list of pointers to READY threads */
 map<int, thread *> allThreads;
 
 int getThreadNum();                 /* find the next available number for a new thread */
-int mainLoop();                     /* the timer loop */
-int switchThreads(thread& newThread);/* switches between threads */
+void switchThreads(thread* newThread);/* switches between threads */
 
 
+
+/* *********************************** Private Functions ************************************* */
+
+void timer_handler(int sig)
+{
+    while (!readyThreads.empty())
+    {
+        thread *newThread = readyThreads.front();
+        readyThreads.pop_front();
+        switchThreads(newThread);
+        return;
+    }
+
+    //TODO: error if no thread is ready?
+
+}
+
+int mainThread(void)
+{
+    struct sigaction sa;
+    struct itimerval timer;
+
+    // Install timer_handler as the signal handler for SIGVTALRM.
+    sa.sa_handler = &timer_handler;
+    if (sigaction(SIGVTALRM, &sa,NULL) < 0) {
+        printf("sigaction error.");
+    }
+
+    // Configure the timer to expire after 1 sec... */
+    timer.it_value.tv_sec = 0;		// first time interval, seconds part
+    timer.it_value.tv_usec = quantumUsecs;		// first time interval, microseconds part
+
+    // configure the timer to expire every 3 sec after that.
+    timer.it_interval.tv_sec = 0;	// following time intervals, seconds part
+    timer.it_interval.tv_usec = quantumUsecs;	// following time intervals, microseconds part
+
+    // Start a virtual timer. It counts down whenever this process is executing.
+    if (setitimer (ITIMER_VIRTUAL, &timer, NULL)) {
+        printf("setitimer error.");
+    }
+
+    for(;;) {}
+}
+
+void switchThreads(thread *newThread)
+{
+    if (currentRunning != 0)
+    {
+        readyThreads.push_back(newThread);
+
+    }
+
+    int ret_val = sigsetjmp(newThread->env,1);
+    printf("SWITCH: ret_val=%d\n", ret_val);
+    if (ret_val == 1) {
+        cout << "in";
+        totalNumQuantum++;
+        return;
+    }
+    currentRunning = newThread->id;
+    siglongjmp(newThread->env,1);
+
+    /*
+
+
+
+    totalNumQuantum += 1; //TODO: this will add a quantom even if the process terminated before
+    // TODO time. is that what needs to be done?
+    if (currentRunning != NULL)
+    {
+        // TODO need to check if it needs to go again to ready or paused or terminated thread?
+        // TODO save the context of the thread (using sigsetjmp) (not trivial)
+    }
+    currentRunning = newThread->id;
+
+    // set the running time for the new thread
+    timer = quantumUsecs; //TODO: need to change to the operating system's timer
+
+    siglongjmp(newThread->env, 1); //jump to execute the new thread
+     */
+
+//    return 0;
+}
+
+/*
+ * Finds the lowest vacant thread num.
+ * if there is no such number, returns -1
+ */
+int getThreadNum()
+{
+
+    for (int i = 1; i <= MAX_THREAD_NUM; i++) //TODO: not very efficient, is there a better way?
+    {
+        if (allThreads.find(i) == allThreads.end())
+        {
+            return i;
+        }
+    }
+    // in case that there is no vacant thread num
+
+    return -1;
+}
+
+/* *********************************** Public Functions ************************************* */
 
 /*
 * Description: This function initializes the thread library.
@@ -102,9 +207,12 @@ int uthread_init(int quantum_usecs)
         return -1;
     }
     quantumUsecs = quantum_usecs;
+    currentRunning = 0; //TODO: or -1?
     totalNumQuantum = 0;
     timer = 0;
-    readyThreads = *(new list<thread *>);
+    mainThread();
+//    allThreads = new map      //  TODO: init map & list
+//    readyThreads = *(new list<thread *>);
     // todo create the main thread
     return 0;
 }
@@ -131,10 +239,13 @@ int uthread_spawn(void (*f)(void))
         return -1;
     }
 
-    thread *newThread = new thread;
+    thread *newThread = new thread; //TODO exception?
+    newThread->id = threadNum;
+    newThread->quantumsNum = 0;
+    newThread->blocked = false;
 
     sp = (address_t)newThread->stack + STACK_SIZE - sizeof(address_t);
-    pc = (address_t)f;
+    pc = (address_t)*f;
     sigsetjmp(newThread->env, 1);
     (newThread->env->__jmpbuf)[JB_SP] = translate_address(sp);
     (newThread->env->__jmpbuf)[JB_PC] = translate_address(pc);
@@ -143,6 +254,7 @@ int uthread_spawn(void (*f)(void))
     // Add the new thread into the thread list and ready list
     allThreads.insert(pair<int, thread *>(threadNum, newThread));
     readyThreads.push_back(newThread);
+    threadsNum++;
 
     return 0;
 }
@@ -161,24 +273,40 @@ int uthread_spawn(void (*f)(void))
 */
 int uthread_terminate(int tid)
 {
-    if (currentRunning == tid)
+    if (tid == 0)
     {
-        switchThreads(readyThreads.front());
-        readyThreads.pop_front();
+
+        _exit(0);
     }
 
-    for (thread* i : readyThreads) // TODO this takes O(n) time - is there a better way?
+    if (allThreads.find(tid) != allThreads.end())
     {
-        if (i->id == tid)
-        {
-            readyThreads.remove(i);
-        }
+        /*
+   if (currentRunning == tid)
+   {
+//        switchThreads(readyThreads.front());
+       readyThreads.pop_front();
+   }
+
+   for (thread* i : readyThreads) // TODO this takes O(n) time - is there a better way?
+   {
+       if (i->id == tid)
+       {
+           readyThreads.remove(i);
+       }
+   }
+
+
+    */
+        thread *threadToDelete = allThreads.at(tid);
+        allThreads.erase(tid);
+        delete(threadToDelete);
+        threadsNum--;
+
+        return 0;
     }
 
-    thread *threadToDelete = allThreads.at(tid);
-    allThreads.erase(tid);
-    delete(*threadToDelete);
-    return 0;
+    return -1;
 }
 
 
@@ -191,7 +319,8 @@ int uthread_terminate(int tid)
  * effect and is not considered as an error.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_block(int tid);
+int uthread_block(int tid); //TODO implement
+
 
 
 /*
@@ -201,7 +330,20 @@ int uthread_block(int tid);
  * ID tid exists it is considered as an error.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_resume(int tid);
+int uthread_resume(int tid)
+{
+    if (allThreads.find(tid) != allThreads.end())
+    {
+        if (allThreads.at(tid)-> blocked)
+        {
+            allThreads.at(tid)->blocked = false;
+            readyThreads.push_back(allThreads.at(tid));
+        }
+        return 0;
+    }
+
+    return -1;
+}
 
 
 /*
@@ -216,14 +358,17 @@ int uthread_resume(int tid);
  * the BLOCKED state a scheduling decision should be made.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_sync(int tid);
+int uthread_sync(int tid);  //TODO implement
 
 
 /*
  * Description: This function returns the thread ID of the calling thread.
  * Return value: The ID of the calling thread.
 */
-int uthread_get_tid();
+int uthread_get_tid()
+{
+    return currentRunning; //TODO: right?
+}
 
 
 /*
@@ -251,58 +396,11 @@ int uthread_get_total_quantums()
 */
 int uthread_get_quantums(int tid)
 {
-
-}
-
-/* *********************************** Private Functions ************************************* */
-
-int mainLoop()
-{
-    while (true)
+    if (allThreads.find(tid) != allThreads.end())
     {
-        if (timer > 0)
-        {
-            timer -= 1;
-        }
-        else if (readyThreads.size() > 0)
-        {
-            thread *newThread = readyThreads.front();
-            readyThreads.pop_front();
-            switchThreads(*newThread);
-        }
+        return allThreads.at(tid)->quantumsNum;
     }
-}
-
-int switchThreads(thread *newThread)
-{
-    totalNumQuantum += 1; //TODO: this will add a quantom even if the process terminated before
-    // TODO time. is that what needs to be done?
-    if (currentRunning != NULL)
-    {
-        // TODO need to check if it needs to go again to ready or paused or terminated thread?
-        // TODO save the context of the thread (using sigsetjmp) (not trivial)
-    }
-    currentRunning = newThread->id;
-
-    // set the running time for the new thread
-    timer = quantumUsecs; //TODO: need to change to the operating system's timer
-
-    siglongjmp(newThread->env, 1); //jump to execute the new thread
-}
-
-/*
- * Finds the lowest vacant thread num.
- * if there is no such number, returns -1
- */
-int getThreadNum()
-{
-    for (int i = 1; i <= MAX_THREAD_NUM; i++) //TODO: not very efficient, is there a better way?
-    {
-        if (allThreads.find(i) == NULL)
-        {
-            return i;
-        }
-    }
-    // in case that there is no vacant thread num
     return -1;
+
 }
+
