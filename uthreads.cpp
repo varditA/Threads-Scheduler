@@ -275,8 +275,8 @@ int uthread_terminate(int tid)
 {
     if (tid == 0)
     {
-
         _exit(0);
+        return 0;
     }
 
     if (allThreads.find(tid) != allThreads.end())
@@ -300,7 +300,7 @@ int uthread_terminate(int tid)
     */
         thread *threadToDelete = allThreads.at(tid);
         allThreads.erase(tid);
-        delete(threadToDelete);
+        delete(threadToDelete); //TODO should we erase from the map & the list?
         threadsNum--;
 
         return 0;
@@ -319,7 +319,28 @@ int uthread_terminate(int tid)
  * effect and is not considered as an error.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_block(int tid); //TODO implement
+int uthread_block(int tid)
+{
+    if (tid == 0)
+    {
+        //TODO ERROR
+    }
+    if (allThreads.find(tid) != allThreads.end())
+    {
+        if (allThreads.at(tid)-> blocked)
+        {
+            return 0;
+        }
+
+        //TODO CHECK IF BLOCKING ITSELF and use switch threats
+//        readyThreads.remove_if (thread->tid);
+//        readyThreads.remove(thread->id==tid);
+        allThreads.at(tid)-> blocked = true;
+
+    }
+
+    return -1;
+}
 
 
 
